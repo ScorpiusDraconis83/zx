@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(antonmedv): Remove this export in next v8 release.
-export { spinner, retry, expBackoff, echo } from './goods.js'
+export {
+  type TSpawnStore,
+  type TSpawnStoreChunks,
+  exec,
+  buildCmd,
+  isStringLiteral,
+  VoidStream,
+} from 'zurk/spawn'
+
+export type RequestInfo = Parameters<typeof globalThis.fetch>[0]
+export type RequestInit = Parameters<typeof globalThis.fetch>[1]
+
+export { default as chalk, type ChalkInstance } from 'chalk'
+export { default as which } from 'which'
+export { default as ps } from '@webpod/ps'
