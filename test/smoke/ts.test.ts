@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(antonmedv): Remove this export in next v8 release.
-export { spinner, retry, expBackoff, echo } from './goods.js'
+import * as assert from 'node:assert'
+import 'zx/globals'
+;(async () => {
+  // smoke test async
+  {
+    const p = await $`echo foo`
+    assert.match(p.stdout, /foo/)
+  }
+
+  // smoke test sync
+  {
+    const p = $.sync`echo foo`
+    assert.match(p.stdout, /foo/)
+  }
+
+  // captures err stack
+  {
+    const p = await $({ nothrow: true })`echo foo; exit 3`
+    assert.match(p.message, /exit code: 3/)
+  }
+})()
+
+console.log('smoke ts: ok')

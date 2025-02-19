@@ -13,21 +13,30 @@
 // limitations under the License.
 
 import { $ } from './core.js'
-import { spinner } from './experimental.js'
+import { spinner } from './goods.js'
+import { depseek } from './vendor.js'
 
+/**
+ * Install npm dependencies
+ * @param dependencies object of dependencies
+ * @param prefix  path to the directory where npm should install the dependencies
+ * @param registry custom npm registry URL when installing dependencies
+ */
 export async function installDeps(
   dependencies: Record<string, string>,
-  prefix?: string
-) {
+  prefix?: string,
+  registry?: string
+): Promise<void> {
+  const prefixFlag = prefix ? `--prefix=${prefix}` : ''
+  const registryFlag = registry ? `--registry=${registry}` : ''
   const packages = Object.entries(dependencies).map(
     ([name, version]) => `${name}@${version}`
   )
-  const flags = prefix ? `--prefix=${prefix}` : ''
   if (packages.length === 0) {
     return
   }
   await spinner(`npm i ${packages.join(' ')}`, () =>
-    $`npm install --no-save --no-audit --no-fund ${flags} ${packages}`.nothrow()
+    $`npm install --no-save --no-audit --no-fund ${registryFlag} ${prefixFlag} ${packages}`.nothrow()
   )
 }
 
@@ -55,6 +64,7 @@ const builtins = new Set([
   'constants',
   'crypto',
   'dgram',
+  'diagnostics_channel',
   'dns',
   'domain',
   'events',
@@ -88,39 +98,24 @@ const builtins = new Set([
   'worker_threads',
   'zlib',
 ])
-const importRe = [
-  /\bimport\s+['"](?<path>[^'"]+)['"]/,
-  /\bimport\(['"](?<path>[^'"]+)['"]\)/,
-  /\brequire\(['"](?<path>[^'"]+)['"]\)/,
-  /\bfrom\s+['"](?<path>[^'"]+)['"]/,
-]
-const nameRe =
-  /^(?<name>(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*)\/?.*$/i
-const versionRe =
-  /(\/\/|\/\*)\s*@(?<version>[~^]?(v?[\dx*]+([-.][\d*a-z-]+)*))/i
 
-export function parseDeps(content: Buffer): Record<string, string> {
-  const deps: Record<string, string> = {}
-  const lines = content.toString().split('\n')
-  for (let line of lines) {
-    const tuple = parseImports(line)
-    if (tuple) {
-      deps[tuple.name] = tuple.version
-    }
-  }
-  return deps
-}
+const nameRe = /^(?<name>(@[a-z\d-~][\w-.~]*\/)?[a-z\d-~][\w-.~]*)\/?.*$/i
+const versionRe = /^@(?<version>[~^]?(v?[\dx*]+([-.][\d*a-z-]+)*))/i
 
-function parseImports(
-  line: string
-): { name: string; version: string } | undefined {
-  for (let re of importRe) {
-    const name = parsePackageName(re.exec(line)?.groups?.path)
-    const version = parseVersion(line)
-    if (name) {
-      return { name, version }
+export function parseDeps(content: string): Record<string, string> {
+  return depseek(content + '\n', { comments: true }).reduce<
+    Record<string, string>
+  >((m, { type, value }, i, list) => {
+    if (type === 'dep') {
+      const meta = list[i + 1]
+      const name = parsePackageName(value)
+      const version =
+        (meta?.type === 'comment' && parseVersion(meta?.value.trim())) ||
+        'latest'
+      if (name) m[name] = version
     }
-  }
+    return m
+  }, {})
 }
 
 function parsePackageName(path?: string): string | undefined {

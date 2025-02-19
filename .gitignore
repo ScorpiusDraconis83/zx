@@ -3,6 +3,6 @@ build/
 coverage/
 package/
 reports/
-.stryker-tmp/
+docs/.vitepress/cache/
 yarn.lock
-test/fixtures/ts-project/package-lock.json
+temp

@@ -13,30 +13,26 @@
 // limitations under the License.
 
 import assert from 'node:assert'
-import { test, describe } from 'node:test'
+import fs from 'node:fs'
+import { test, describe, after } from 'node:test'
+import { fs as fsCore } from '../build/index.js'
 import {
-  exitCodeInfo,
-  errnoMessage,
   formatCmd,
   isString,
+  isStringLiteral,
   noop,
   parseDuration,
   quote,
   quotePowerShell,
   randomId,
+  // normalizeMultilinePieces,
+  tempdir,
+  tempfile,
+  preferLocalBin,
+  toCamelCase,
 } from '../build/util.js'
 
 describe('util', () => {
-  test('exitCodeInfo()', () => {
-    assert.equal(exitCodeInfo(2), 'Misuse of shell builtins')
-  })
-
-  test('errnoMessage()', () => {
-    assert.equal(errnoMessage(-2), 'No such file or directory')
-    assert.equal(errnoMessage(1e9), 'Unknown error')
-    assert.equal(errnoMessage(undefined), 'Unknown error')
-  })
-
   test('randomId()', () => {
     assert.ok(/^[a-z0-9]+$/.test(randomId()))
     assert.ok(
@@ -53,12 +49,23 @@ describe('util', () => {
     assert.ok(!isString(1))
   })
 
+  test('isStringLiteral()', () => {
+    const bar = 'baz'
+    assert.ok(isStringLiteral``)
+    assert.ok(isStringLiteral`foo`)
+    assert.ok(isStringLiteral`foo ${bar}`)
+
+    assert.ok(!isStringLiteral(''))
+    assert.ok(!isStringLiteral('foo'))
+    assert.ok(!isStringLiteral(['foo']))
+  })
+
   test('quote()', () => {
     assert.ok(quote('string') === 'string')
     assert.ok(quote(`'\f\n\r\t\v\0`) === `$'\\'\\f\\n\\r\\t\\v\\0'`)
   })
 
-  test('quotePowerShgell()', () => {
+  test('quotePowerShell()', () => {
     assert.equal(quotePowerShell('string'), 'string')
     assert.equal(quotePowerShell(`'`), `''''`)
   })
@@ -67,6 +74,9 @@ describe('util', () => {
     assert.equal(parseDuration(1000), 1000)
     assert.equal(parseDuration('2s'), 2000)
     assert.equal(parseDuration('500ms'), 500)
+    assert.equal(parseDuration('2m'), 120000)
+    assert.throws(() => parseDuration('f2ms'))
+    assert.throws(() => parseDuration('2mss'))
     assert.throws(() => parseDuration('100'))
     assert.throws(() => parseDuration(NaN))
     assert.throws(() => parseDuration(-1))
@@ -89,5 +99,44 @@ describe('util', () => {
       formatCmd(`$'\\''`),
       "$ \u001b[93m$\u001b[39m\u001b[93m'\u001b[39m\u001b[93m\\\u001b[39m\u001b[93m'\u001b[39m\u001b[93m'\u001b[39m\n"
     )
+  })
+
+  // test('normalizeMultilinePieces()', () => {
+  //   assert.equal(
+  //     normalizeMultilinePieces([' a ', 'b    c    d', ' e']).join(','),
+  //     ' a ,b c d, e'
+  //   )
+  // })
+
+  test('tempdir() creates temporary folders', () => {
+    assert.match(tempdir(), /\/zx-/)
+    assert.match(tempdir('foo'), /\/foo$/)
+  })
+
+  test('tempfile() creates temporary files', () => {
+    assert.match(tempfile(), /\/zx-.+/)
+    assert.match(tempfile('foo.txt'), /\/zx-.+\/foo\.txt$/)
+
+    const tf = tempfile('bar.txt', 'bar')
+    assert.match(tf, /\/zx-.+\/bar\.txt$/)
+    assert.equal(fs.readFileSync(tf, 'utf-8'), 'bar')
+  })
+
+  test('preferLocalBin()', () => {
+    const env = {
+      PATH: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin',
+    }
+    const _env = preferLocalBin(env, process.cwd())
+    assert.equal(
+      _env.PATH,
+      `${process.cwd()}/node_modules/.bin:${process.cwd()}:${env.PATH}`
+    )
+  })
+
+  test('toCamelCase()', () => {
+    assert.equal(toCamelCase('VERBOSE'), 'verbose')
+    assert.equal(toCamelCase('PREFER_LOCAL'), 'preferLocal')
+    assert.equal(toCamelCase('SOME_MORE_BIG_STR'), 'someMoreBigStr')
+    assert.equal(toCamelCase('kebab-input-str'), 'kebabInputStr')
   })
 })

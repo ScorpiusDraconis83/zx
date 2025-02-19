@@ -13,22 +13,47 @@
 // limitations under the License.
 
 import { ProcessPromise } from './core.js'
+import { fs } from './vendor.js'
 
 export * from './core.js'
 export * from './goods.js'
+export {
+  minimist,
+  chalk,
+  dotenv,
+  fs,
+  which,
+  YAML,
+  ps,
+  glob,
+  glob as globby,
+} from './vendor.js'
 
-export { Duration, quote, quotePowerShell } from './util.js'
+export const VERSION: string = fs.readJsonSync(
+  new URL('../package.json', import.meta.url)
+).version
+export const version: string = VERSION
+
+export {
+  type Duration,
+  quote,
+  quotePowerShell,
+  tempdir,
+  tempdir as tmpdir,
+  tempfile,
+  tempfile as tmpfile,
+} from './util.js'
 
 /**
- *  @deprecated Use $.nothrow() instead.
+ *  @deprecated Use $`cmd`.nothrow() instead.
  */
-export function nothrow(promise: ProcessPromise) {
+export function nothrow(promise: ProcessPromise): ProcessPromise {
   return promise.nothrow()
 }
 
 /**
- * @deprecated Use $.quiet() instead.
+ * @deprecated Use $`cmd`.quiet() instead.
  */
-export function quiet(promise: ProcessPromise) {
+export function quiet(promise: ProcessPromise): ProcessPromise {
   return promise.quiet()
 }
