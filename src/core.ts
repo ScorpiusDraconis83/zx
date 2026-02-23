@@ -303,8 +303,16 @@ export class ProcessPromise extends Promise<ProcessOutput> {
 
     const self = this
     const $ = self._snapshot
-    const id = self.id
-    const cwd = $.cwd || $[CWD]
+    const { id, cwd } = self
+
+    if (!fs.existsSync(cwd)) {
+      this.finalize(
+        ProcessOutput.fromError(
+          new Error(`The working directory '${cwd}' does not exist.`)
+        )
+      )
+      return this
+    }
 
     if ($.preferLocal) {
       const dirs =
@@ -488,6 +496,10 @@ export class ProcessPromise extends Promise<ProcessOutput> {
 
   get pid(): number | undefined {
     return this.child?.pid
+  }
+
+  get cwd(): string {
+    return this._snapshot.cwd || this._snapshot[CWD]
   }
 
   get cmd(): string {

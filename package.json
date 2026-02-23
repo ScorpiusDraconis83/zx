@@ -157,6 +157,14 @@
     "globby": {
       "fast-glob": "3.3.3"
     },
+    "c8": {
+      "test-exclude": {
+        "minimatch": "10.2.2"
+      }
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "10.2.2"
+    },
     "tsx": {
       "esbuild": "$esbuild"
     },
@@ -201,7 +209,7 @@
   "author": "Anton Medvedev <anton@medv.io>",
   "license": "Apache-2.0",
   "volta": {
-    "node": "24.6.0"
+    "node": "24.13.1"
   },
   "tsd": {
     "compilerOptions": {
