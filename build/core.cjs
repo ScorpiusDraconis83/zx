@@ -524,6 +524,8 @@ var _ProcessPromise = class _ProcessPromise extends Promise {
       $2.pieces,
       $2.args
     );
+    if ($2[SYNC] && !(0, import_util.isString)($2.cmd))
+      throw new Fail("sync mode does not allow async command resolution");
   }
   run() {
     var _a, _b;
@@ -562,16 +564,17 @@ var _ProcessPromise = class _ProcessPromise extends Promise {
       detached: $2.detached,
       ee: $2.ee,
       run(cb, ctx) {
-        var _a2, _b2;
-        ((_b2 = (_a2 = self.cmd).then) == null ? void 0 : _b2.call(
-          _a2,
-          (cmd) => {
-            $2.cmd = cmd;
-            ctx.cmd = self.fullCmd;
+        return __async(this, null, function* () {
+          try {
+            if (!(0, import_util.isString)(self.cmd)) {
+              $2.cmd = yield self.cmd;
+              ctx.cmd = self.fullCmd;
+            }
             cb();
-          },
-          (error) => self.finalize(ProcessOutput.fromError(error))
-        )) || cb();
+          } catch (error) {
+            self.finalize(ProcessOutput.fromError(error));
+          }
+        });
       },
       on: {
         start: () => {

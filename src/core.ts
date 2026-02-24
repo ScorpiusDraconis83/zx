@@ -295,6 +295,9 @@ export class ProcessPromise extends Promise<ProcessOutput> {
       $.pieces as TemplateStringsArray,
       $.args
     ) as string
+
+    if ($[SYNC] && !isString($.cmd))
+      throw new Fail('sync mode does not allow async command resolution')
   }
   run(): this {
     ProcessPromise.bus.runBack(this)
@@ -337,15 +340,16 @@ export class ProcessPromise extends Promise<ProcessOutput> {
       stdio:    $.stdio,
       detached: $.detached,
       ee:       $.ee,
-      run(cb, ctx){
-        (self.cmd as unknown as Promise<string>).then?.(
-          cmd => {
-            $.cmd = cmd
+      async run(cb, ctx){
+        try {
+          if (!isString(self.cmd)) {
+            $.cmd = await self.cmd
             ctx.cmd = self.fullCmd
-            cb()
-          },
-          error => self.finalize(ProcessOutput.fromError(error))
-        ) || cb()
+          }
+          cb()
+        } catch (error) {
+          self.finalize(ProcessOutput.fromError(error as Error))
+        }
       },
       on: {
         start: () => {
